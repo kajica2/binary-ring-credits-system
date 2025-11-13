@@ -1,1 +1,4 @@
 .vercel
+
+# Test output files
+test-output-*.html
