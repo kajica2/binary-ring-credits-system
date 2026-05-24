@@ -1040,12 +1040,15 @@
         <span id="statusRight">Context: 0 items</span>
     </div>
 
+    <script src="webpage-generator.js"></script>
     <script>
         let contextItems = [];
         let currentPreviewMode = 'preview';
+        let generator = null;
 
         // Initialize the interface
         document.addEventListener('DOMContentLoaded', function() {
+            generator = new WebpageGenerator();
             loadApps();
             loadKeywords();
             updateContextStats();
@@ -1275,8 +1278,108 @@
         }
 
         function implementFrontend() {
-            updateStatus('Implementation would start here - connect to your preferred framework!');
-            alert('This would trigger the actual frontend generation process based on your context window specification.');
+            if (!generator) {
+                alert('Generator not initialized. Please refresh the page.');
+                return;
+            }
+
+            updateStatus('Generating complete HTML page from context...');
+
+            const prompt = document.getElementById('promptInput').value;
+            const generatedHTML = generator.generatePage(contextItems, prompt);
+
+            // Create download button and preview option
+            const previewContent = document.getElementById('previewContent');
+            previewContent.innerHTML = `
+                <div style="padding: 2rem; text-align: center;">
+                    <h2 style="color: #4f46e5; margin-bottom: 2rem;">✨ Webpage Generated Successfully!</h2>
+
+                    <div style="background: rgba(0,0,0,0.05); padding: 2rem; border-radius: 15px; margin: 2rem auto; max-width: 600px;">
+                        <p style="color: #666; margin-bottom: 1.5rem;">
+                            Your complete HTML webpage has been generated with ${contextItems.length} context items.
+                        </p>
+
+                        <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                            <button class="btn primary" onclick="downloadGeneratedPage()">
+                                💾 Download HTML
+                            </button>
+                            <button class="btn" onclick="previewGeneratedPage()">
+                                👁️ Preview in New Tab
+                            </button>
+                            <button class="btn" onclick="copyHTMLToClipboard()">
+                                📋 Copy HTML
+                            </button>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 2rem; text-align: left; background: #1a1a1a; padding: 1.5rem; border-radius: 10px; max-height: 400px; overflow-y: auto;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                            <span style="color: #4f46e5; font-weight: bold;">Generated HTML Preview</span>
+                            <span style="color: #666; font-size: 0.8rem;">${(generatedHTML.length / 1024).toFixed(1)} KB</span>
+                        </div>
+                        <pre style="color: #00ff9f; font-size: 0.75rem; white-space: pre-wrap; word-wrap: break-word;">${escapeHTML(generatedHTML.substring(0, 1000))}...</pre>
+                    </div>
+
+                    <button class="btn" onclick="generateFromContext()" style="margin-top: 2rem;">
+                        🔄 Generate New Specification
+                    </button>
+                </div>
+            `;
+
+            // Store the generated HTML for later use
+            window.generatedPageHTML = generatedHTML;
+            updateStatus('Webpage generated! Ready to download or preview.');
+        }
+
+        function downloadGeneratedPage() {
+            if (!window.generatedPageHTML) {
+                alert('No generated page available. Please generate a page first.');
+                return;
+            }
+
+            const blob = new Blob([window.generatedPageHTML], {type: 'text/html'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'binary-ring-generated-page.html';
+            a.click();
+            URL.revokeObjectURL(url);
+
+            updateStatus('HTML file downloaded successfully!');
+        }
+
+        function previewGeneratedPage() {
+            if (!window.generatedPageHTML) {
+                alert('No generated page available. Please generate a page first.');
+                return;
+            }
+
+            const blob = new Blob([window.generatedPageHTML], {type: 'text/html'});
+            const url = URL.createObjectURL(blob);
+            window.open(url, '_blank');
+
+            updateStatus('Preview opened in new tab!');
+        }
+
+        function copyHTMLToClipboard() {
+            if (!window.generatedPageHTML) {
+                alert('No generated page available. Please generate a page first.');
+                return;
+            }
+
+            navigator.clipboard.writeText(window.generatedPageHTML).then(() => {
+                updateStatus('HTML copied to clipboard!');
+                alert('HTML code copied to clipboard!');
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+                alert('Failed to copy to clipboard. Please try again.');
+            });
+        }
+
+        function escapeHTML(html) {
+            const div = document.createElement('div');
+            div.textContent = html;
+            return div.innerHTML;
         }
 
         function exportSpecification() {
